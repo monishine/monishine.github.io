@@ -1,0 +1,44 @@
+name: Deploy to GitHub Pages
+on:
+  # pr 时执行
+  pull_request:
+    branches:
+      - main
+jobs:
+  # 部署 GitHub Pages
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # 检出源码
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      # 配置 Git
+      # 主要是 quotePath，默认情况下，文件名包含中文时，git 会使用引号把文件名括起来，这会导致 action 中无法读取 :GitInfo 变量
+      - name: Git Configuration
+        run: |
+          git config --global core.quotePath false
+          git config --global core.autocrlf false
+          git config --global core.safecrlf true
+          git config --global core.ignorecase false  
+      # 安装 pnpm
+      - uses: pnpm/action-setup@v2
+        with:
+          version: latest
+      # 安装 node
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: pnpm
+      # 安装依赖
+      - name: Install Dependencies
+        run: pnpm install --no-frozen-lockfile
+      # 打包
+      - name: Build
+        run: pnpm run docs:build
+      # 部署 github pages
+      - name: Deploy GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          BRANCH: pages
+          FOLDER: docs/.vitepress/dist
